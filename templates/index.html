@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🕵️ Fake News Verifier</title>
+  <link rel="stylesheet" href="/static/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/typed.js@2.0.12"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="overlay"></div>
+
+  <main class="main-wrapper">
+    <section class="glass-card">
+      <header>
+        <h1>🕵️ Fake News Verifier</h1>
+        <p class="tagline">AI-powered, real-time verification system</p>
+        <div class="toggle-wrapper">
+          <label class="switch">
+            <input type="checkbox" id="darkToggle" />
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-label">🌙 Dark Mode</span>
+        </div>
+      </header>
+
+      <form method="POST" id="news-form">
+        <select name="language" id="language" required>
+          <option value="en" selected>🌐 English</option>
+          <option value="hi">🇮🇳 Hindi</option>
+          <option value="te">🇮🇳 Telugu</option>
+          <option value="ta">🇮🇳 Tamil</option>
+        </select>
+
+        <textarea name="news" placeholder="Paste or speak your news claim here..." required></textarea>
+        
+        <div class="mic-wrapper">
+          <button type="button" id="micBtn">🎙️ Speak</button>
+          <span id="micStatus"></span>
+        </div>
+
+        <button type="submit" class="submit-btn">🚀 Verify Claim</button>
+      </form>
+
+      <div id="spinner" class="spinner" style="display: none;">
+        🔍 Verifying your claim... Please wait...
+      </div>
+
+      {% if result %}
+      <section class="result-card">
+        <div class="verdict-badge {{ result.verdict | lower }}">
+          <i data-lucide="{% if result.verdict == 'Real' %}shield-check{% else %}shield-x{% endif %}" class="verdict-icon"></i>
+          <span id="typed-verdict"></span>
+        </div>
+
+        <blockquote class="reason-box">
+          <span>🧠</span> {{ result.reason }}
+        </blockquote>
+
+        <p class="trust-title">✅ Trust Score:</p>
+        <div class="trust-bar">
+          <div class="trust-fill {{ result.verdict | lower }}" style="width: {{ result.trust_score }}%;"></div>
+        </div>
+        <p class="score">{{ result.trust_score }}%</p>
+
+        <h3 class="sources-title">📚 Top Sources</h3>
+        <ul class="sources">
+          {% for src in result.sources %}
+          <li>🔗 <a href="{{ src.url }}" target="_blank" rel="noopener noreferrer">{{ src.title }}</a></li>
+          {% endfor %}
+        </ul>
+      </section>
+      {% endif %}
+    </section>
+  </main>
+
+  <script>
+    const form = document.getElementById("news-form");
+    const spinner = document.getElementById("spinner");
+    const toggle = document.getElementById("darkToggle");
+    const micBtn = document.getElementById("micBtn");
+    const micStatus = document.getElementById("micStatus");
+    const textarea = document.querySelector("textarea");
+
+    // Form loading animation
+    form.addEventListener("submit", () => spinner.style.display = "block");
+
+    // Dark mode toggle
+    toggle.addEventListener("change", () => {
+      document.body.classList.toggle("dark");
+    });
+
+    // Speech recognition
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+
+      micBtn.addEventListener("click", () => {
+        const lang = document.getElementById("language").value;
+        recognition.lang = {
+          'hi': 'hi-IN',
+          'te': 'te-IN',
+          'ta': 'ta-IN'
+        }[lang] || 'en-US';
+
+        recognition.start();
+        micStatus.textContent = "🎤 Listening...";
+      });
+
+      recognition.onresult = (event) => {
+        textarea.value = event.results[0][0].transcript;
+        micStatus.textContent = "✅ Captured!";
+      };
+
+      recognition.onerror = (event) => {
+        micStatus.textContent = "⚠️ Error: " + event.error;
+      };
+
+      recognition.onend = () => {
+        setTimeout(() => micStatus.textContent = "", 2000);
+      };
+    } else {
+      micBtn.disabled = true;
+      micStatus.textContent = "❌ Speech not supported on this browser.";
+    }
+
+    // Typed verdict animation
+    const verdict = "{{ result.verdict }}";
+    if (verdict) {
+      new Typed("#typed-verdict", {
+        strings: [verdict],
+        typeSpeed: 100,
+        showCursor: false
+      });
+    }
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
